@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L'Oracle des Étoiles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Ciel étoilé -->
+<canvas id="sky"></canvas>
+<div class="nebula"></div>
+
+<!-- Particules -->
+<div id="particles"></div>
+
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <header class="header">
+    <span class="header-ornament">☽ ✦ ☾</span>
+    <h1>L'Oracle des Étoiles</h1>
+    <p class="header-sub">Découvrez ce que les astres vous réservent</p>
+    <div class="divider">
+      <span class="divider-line"></span>
+      <span class="divider-star">✦ ✦ ✦</span>
+      <span class="divider-line right"></span>
+    </div>
+  </header>
+
+  <!-- ══ FORMULAIRE ══ -->
+  <div class="form-card" id="formCard">
+    <div class="form-group">
+      <label for="prenom">Votre Prénom</label>
+      <input
+        type="text"
+        id="prenom"
+        placeholder="Entrez votre prénom…"
+        maxlength="40"
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label for="genre">Genre</label>
+        <select id="genre">
+          <option value="">— Choisir —</option>
+          <option value="M">Masculin</option>
+          <option value="F">Féminin</option>
+          <option value="N">Neutre</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label for="dob">Date de naissance</label>
+        <input type="date" id="dob" max="">
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg">⚠ Veuillez remplir tous les champs.</div>
+
+    <button class="btn-oracle" onclick="consulterOracle()">
+      <span>✦ Consulter l'Oracle ✦</span>
+    </button>
+  </div>
+
+  <!-- ══ RÉSULTAT ══ -->
+  <div id="result">
+    <div class="result-card">
+
+      <!-- Hero signe -->
+      <div class="result-hero">
+        <span class="sign-emoji" id="signEmoji"></span>
+        <p class="greeting-name" id="greetingName"></p>
+        <h2 class="sign-name" id="signName"></h2>
+        <p class="sign-dates" id="signDates"></p>
+        <span class="sign-element" id="signElement"></span>
+      </div>
+
+      <!-- Corps -->
+      <div class="result-body">
+        <div class="info-block">
+          <div class="info-label">Personnalité</div>
+          <p class="info-text" id="signPerso"></p>
+        </div>
+        <div class="info-block">
+          <div class="info-label">Planète gouvernante</div>
+          <p class="info-text" id="signPlanete"></p>
+        </div>
+        <div class="info-block">
+          <div class="info-label">Compatibilité amoureuse</div>
+          <p class="info-text" id="signCompat"></p>
+        </div>
+      </div>
+
+      <!-- Traits de caractère -->
+      <div class="traits-grid" id="traitsGrid"></div>
+
+      <!-- Prédiction -->
+      <div class="prediction-block">
+        <p class="prediction-text" id="predictionText"></p>
+      </div>
+
+      <!-- Reset -->
+      <button class="btn-reset" onclick="recommencer()">↺ Consulter à nouveau</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+/* ════════════════════════════════════════
+   CIEL ÉTOILÉ — Canvas
+════════════════════════════════════════ */
+(function initSky() {
+  const canvas = document.getElementById('sky');
+  const ctx    = canvas.getContext('2d');
+
+  const stars = [];
+  const STAR_COUNT = 200;
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function createStars() {
+    stars.length = 0;
+    for (let i = 0; i < STAR_COUNT; i++) {
+      stars.push({
+        x:    Math.random() * canvas.width,
+        y:    Math.random() * canvas.height,
+        r:    Math.random() * 1.4 + 0.2,
+        alpha: Math.random(),
+        speed: Math.random() * 0.008 + 0.002,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  function drawStars(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      const a = 0.3 + 0.7 * Math.abs(Math.sin(t * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,215,255,${a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(drawStars);
+  }
+
+  window.addEventListener('resize', () => { resize(); createStars(); });
+  resize();
+  createStars();
+  requestAnimationFrame(drawStars);
+})();
+
+/* ════════════════════════════════════════
+   PARTICULES FLOTTANTES
+════════════════════════════════════════ */
+(function initParticles() {
+  const container = document.getElementById('particles');
+  const symbols   = ['✦', '✧', '⋆', '·', '✺', '✻'];
+
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('span');
+    p.className = 'particle';
+    p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    p.style.left     = Math.random() * 100 + 'vw';
+    p.style.animationDuration  = (12 + Math.random() * 20) + 's';
+    p.style.animationDelay     = (-Math.random() * 20) + 's';
+    p.style.fontSize = (0.4 + Math.random() * 0.6) + 'rem';
+    container.appendChild(p);
+  }
+})();
+
+/* ════════════════════════════════════════
+   DONNÉES DES SIGNES
+════════════════════════════════════════ */
+const SIGNES = [
+  {
+    nom:      'Bélier',
+    emoji:    '♈',
+    dates:    '21 mars — 19 avril',
+    element:  'Feu 🔥',
+    planete:  'Mars — planète de l\'action, de l\'énergie et du courage.',
+    perso:    'Pionnier intrépide et leader naturel, le Bélier fonce tête baissée vers ses objectifs. Doté d\'une énergie débordante et d\'une volonté de fer, il ne connaît pas la demi-mesure.',
+    compat:   'Lion, Sagittaire (signes de Feu) — et Gémeaux, Verseau pour une complémentarité intellectuelle.',
+    traits:   ['Courageux', 'Impulsif', 'Ambitieux', 'Direct', 'Compétitif', 'Passionné'],
+    predictions: {
+      M: [
+        'Les astres vous placent au carrefour d\'une décision majeure, {prenom}. Mars, votre gouvernante, insuffle une énergie guerrière dans vos veines. Ce cycle s\'annonce propice aux initiatives audacieuses — un projet trop longtemps différé trouvera enfin son heure. Dans votre vie affective, attendez-vous à une rencontre électrisante ou à un renouveau passionné. Vos finances connaîtront une croissance si vous savez canaliser vos impulsions.',
+        'L\'Oracle perçoit en vous, {prenom}, une flamme prête à embraser le monde. Les prochains mois vous verront surmonter un obstacle qui vous semblait insurmontable. Un allié inattendu surgira au moment précis où vous en aurez besoin. Gardez votre détermination légendaire, car la victoire est inscrite dans les étoiles.',
+      ],
+      F: [
+        'Les étoiles révèlent, {prenom}, que vous êtes à l\'aube d\'une métamorphose puissante. Mars vous insuffle une audace rare — saisissez les opportunités qui se présenteront au cours des prochaines lunes. Une relation ancienne pourrait se transformer en quelque chose de profond et durable. Votre intuition aiguisée sera votre meilleure alliée dans les choix professionnels à venir.',
+        'L\'Oracle vous voit, {prenom}, rayonner d\'une lumière guerrière. Une épreuve que vous traversez en ce moment n\'est que le préambule à une renaissance éclatante. Fiez-vous à votre premier instinct — il vous mènera vers une destinée que vous n\'osez pas encore imaginer.',
+      ],
+      N: [
+        'Les astres, {prenom}, vous placent au seuil d\'un nouveau cycle. L\'énergie martienne qui vous anime est une force rare — utilisez-la pour briser les frontières que les autres vous imposent. Une période de courage et d\'action s\'ouvre devant vous. Les étoiles sourient à ceux qui osent.',
+      ],
+    },
+  },
+  {
+    nom:      'Taureau',
+    emoji:    '♉',
+    dates:    '20 avril — 20 mai',
+    element:  'Terre 🌍',
+    planete:  'Vénus — planète de l\'amour, de la beauté et de l\'abondance.',
+    perso:    'Patient et déterminé, le Taureau bâtit son monde avec méthode et ténacité. Sensuel et amoureux des plaisirs terrestres, il possède un sens inné de la beauté et une fidélité indéfectible.',
+    compat:   'Vierge, Capricorne (signes de Terre) — et Cancer, Poissons pour une harmonie émotionnelle.',
+    traits:   ['Patient', 'Fiable', 'Sensuel', 'Têtu', 'Généreux', 'Pragmatique'],
+    predictions: {
+      M: [
+        'Vénus tisse pour vous, {prenom}, une toile d\'opportunités dorées. Votre patience légendaire va enfin porter ses fruits dans les domaines financier et professionnel. Un projet auquel vous avez consacré du temps et de l\'énergie est sur le point d\'aboutir glorieusement. En amour, la stabilité que vous offrez sera reconnue et récompensée.',
+        'L\'Oracle distingue en vous, {prenom}, une force tranquille que rien ne peut ébranler. Les prochaines lunes vous apporteront une opportunité de consolider votre patrimoine et votre sécurité. Une personne du passé pourrait revenir avec des intentions sincères.',
+      ],
+      F: [
+        'Les astres de Vénus illuminent votre chemin, {prenom}. Votre sensibilité artistique attire vers vous des êtres et des situations d\'une rare beauté. Une période d\'abondance matérielle et affective s\'annonce — apprenez à recevoir autant que vous donnez. Un voyage ou une rencontre issue d\'un lieu culturel transformera votre vision du monde.',
+        'L\'Oracle voit votre jardin intérieur fleurir, {prenom}. Ce que vous avez semé avec patience donnera bientôt une récolte abondante. Ne laissez pas la peur de l\'inconnu vous retenir à la lisière de votre propre bonheur.',
+      ],
+      N: [
+        'Vénus vous bénit, {prenom}, de sa lumière la plus douce. Un temps de récolte approche — tout ce que vous avez construit avec vos mains et votre cœur porte aujourd\'hui ses fruits. Accordez-vous la permission de profiter pleinement de ce que la vie vous offre.',
+      ],
+    },
+  },
+  {
+    nom:      'Gémeaux',
+    emoji:    '♊',
+    dates:    '21 mai — 20 juin',
+    element:  'Air 💨',
+    planete:  'Mercure — planète de la communication, de l\'intellect et des échanges.',
+    perso:    'Vif et curieux, le Gémeaux est un caméléon intellectuel qui s\'adapte à toutes les situations. Doté d\'un esprit brillant et d\'un don naturel pour la communication, il est le pont entre les idées et les personnes.',
+    compat:   'Balance, Verseau (signes d\'Air) — et Bélier, Lion pour une énergie complémentaire.',
+    traits:   ['Curieux', 'Adaptable', 'Éloquent', 'Versatile', 'Sociable', 'Inventif'],
+    predictions: {
+      M: [
+        'Mercure agite ses ailes pour vous, {prenom}, et votre esprit brille comme jamais. Une idée que vous avez eu il y a longtemps est prête à prendre vie — ne la laissez pas s\'envoler. Des connexions inattendues dans votre réseau professionnel ouvriront des portes que vous ne soupçonniez pas.',
+        'L\'Oracle perçoit un foisonnement d\'idées lumineuses autour de vous, {prenom}. Prenez le temps d\'en choisir une et de l\'approfondir — votre tendance à la dispersion pourrait vous priver d\'un succès remarquable. En amour, la sincérité sera votre plus grand atout.',
+      ],
+      F: [
+        'Les étoiles de Mercure vous dotent, {prenom}, d\'une éloquence ensorcelante ce cycle. Vos mots ont le pouvoir de changer des esprits et de toucher des cœurs. Une opportunité de vous exprimer publiquement — écriture, prise de parole, création — pourrait transformer votre trajectoire.',
+        'L\'Oracle vous voit briller, {prenom}, dans des conversations qui changent des vies. Votre double nature — à la fois sérieuse et ludique — est un don précieux. Embrassez vos contradictions, elles sont la source de votre génie.',
+      ],
+      N: [
+        'Mercure vous offre, {prenom}, des ailes pour votre pensée. Les échanges et rencontres de ce cycle vous apporteront des révélations qui réorienteront votre chemin. Restez ouvert·e à l\'inattendu — c\'est là que réside votre prochaine grande aventure.',
+      ],
+    },
+  },
+  {
+    nom:      'Cancer',
+    emoji:    '♋',
+    dates:    '21 juin — 22 juillet',
+    element:  'Eau 🌊',
+    planete:  'La Lune — astre de l\'émotion, de l\'intuition et des cycles intérieurs.',
+    perso:    'Profondément intuitif et empathique, le Cancer ressent le monde avec une intensité rare. Gardien de la mémoire et de la famille, il possède une sensibilité artistique et émotionnelle hors du commun.',
+    compat:   'Scorpion, Poissons (signes d\'Eau) — et Taureau, Vierge pour un ancrage rassurant.',
+    traits:   ['Intuitif', 'Protecteur', 'Sensible', 'Mémoriel', 'Créatif', 'Tenace'],
+    predictions: {
+      M: [
+        'La Lune, {prenom}, vous enveloppe de sa lumière argentée et révèle des vérités cachées en vous. Un cycle de transformation intérieure profonde s\'ouvre — ce que vous traversez en ce moment est un passage, non une impasse. Vos relations familiales seront au cœur d\'une guérison longtemps attendue.',
+        'L\'Oracle voit en vous, {prenom}, un lac profond dont les eaux commencent à se clarifier. Une décision que vous avez repoussée ne peut plus attendre — votre intuition vous indique la voie juste. En amour, l\'authenticité remplacera avantageusement les défenses que vous avez érigées.',
+      ],
+      F: [
+        'La Lune chante pour vous, {prenom}, un cantique de renouveau. Votre sensibilité, si souvent perçue comme une fragilité, est en réalité votre superpower. Un projet créatif ou un acte de soin pour les autres vous apportera une satisfaction profonde et durable.',
+        'L\'Oracle distingue en vous, {prenom}, une lumière intérieure prête à guérir tout ce qu\'elle touche. Osez partager vos vulnérabilités — elles créeront les connexions les plus authentiques de votre vie.',
+      ],
+      N: [
+        'La Lune vous berce, {prenom}, de ses marées douces et inévitables. Ce cycle appelle à écouter ce qui remonte du fond de vous — ces émotions ne sont pas à craindre mais à honorer. Votre intuition est votre boussole la plus précieuse.',
+      ],
+    },
+  },
+  {
+    nom:      'Lion',
+    emoji:    '♌',
+    dates:    '23 juillet — 22 août',
+    element:  'Feu 🔥',
+    planete:  'Le Soleil — astre de la vitalité, de l\'identité et de la souveraineté.',
+    perso:    'Majestueux et charismatique, le Lion est né pour régner et illuminer tout ce qui l\'entoure. Son généreux rayonnement, sa fierté naturelle et son sens du spectacle en font un être inoubliable.',
+    compat:   'Bélier, Sagittaire (signes de Feu) — et Gémeaux, Balance pour une stimulation intellectuelle.',
+    traits:   ['Charismatique', 'Généreux', 'Fier', 'Loyal', 'Créatif', 'Magnétique'],
+    predictions: {
+      M: [
+        'Le Soleil, {prenom}, ne brille jamais aussi fort que lorsqu\'il vous couronne. Une période de reconnaissance et de gloire approche — vos talents seront enfin vus par les bonnes personnes. Un projet artistique ou de leadership atteindra son apogée dans les prochaines lunes.',
+        'L\'Oracle vous voit, {prenom}, sur le point de prendre la place qui vous revient de droit. Cessez de vous diminuer pour rendre les autres confortables — votre lumière n\'étouffe personne, elle inspire. L\'amour arrive sous la forme d\'un être qui vous admire autant que vous le méritez.',
+      ],
+      F: [
+        'Le Soleil vous couronne, {prenom}, d\'une auréole dorée que nul ne peut ignorer. Ce cycle vous appelle à embrasser pleinement votre puissance créatrice — une œuvre ou une initiative vous survivra. Sur le plan sentimental, attendez-vous à une passion qui correspond enfin à votre capacité d\'aimer.',
+        'L\'Oracle distingue en vous, {prenom}, une reine qui a trop longtemps attendu son trône. Le moment est venu de réclamer ce que vous méritez — dans votre carrière, vos relations, votre vie.',
+      ],
+      N: [
+        'Le Soleil brille pour vous, {prenom}, avec une intensité rare. Ce cycle vous demande d\'assumer pleinement votre lumière sans vous excuser de la posséder. Les êtres qui méritent votre rayonnement sauront le reconnaître et le chérir.',
+      ],
+    },
+  },
+  {
+    nom:      'Vierge',
+    emoji:    '♍',
+    dates:    '23 août — 22 septembre',
+    element:  'Terre 🌍',
+    planete:  'Mercure — planète de l\'analyse, du discernement et de la précision.',
+    perso:    'Analytique et perfectionniste, la Vierge possède un regard acéré sur le monde et une capacité remarquable à distinguer l\'essentiel du superflu. Dévoué et méticuleux, il/elle excelle dans l\'art d\'améliorer tout ce qu\'il/elle touche.',
+    compat:   'Taureau, Capricorne (signes de Terre) — et Cancer, Scorpion pour une profondeur partagée.',
+    traits:   ['Analytique', 'Perfectionniste', 'Dévoué', 'Méticuleux', 'Discret', 'Fiable'],
+    predictions: {
+      M: [
+        'Mercure aiguise votre regard, {prenom}, pour percevoir ce que d\'autres ne voient pas. Un problème complexe qui vous préoccupe trouvera une solution élégante dans les prochaines semaines. Votre expertise sera réclamée dans un domaine où vous pouvez faire une différence réelle.',
+        'L\'Oracle perçoit en vous, {prenom}, un artisan de la perfection à l\'aube de son chef-d\'œuvre. Ne laissez pas le perfectionnisme devenir un obstacle — l\'imparfait accompli vaut plus que l\'idéal abandonné. Une relation se renforce par la communication claire que vous êtes capable d\'apporter.',
+      ],
+      F: [
+        'Les étoiles de Mercure révèlent, {prenom}, que votre intelligence rare est sur le point d\'être reconnue. Un effort que vous avez fourni discrètement et consciencieusement portera ses fruits de manière visible. Autorisez-vous à recevoir les compliments sans les minimiser.',
+        'L\'Oracle vous voit, {prenom}, à la veille d\'une clarification bienvenue dans votre vie intime. Ce que vous cherchez depuis longtemps — stabilité et profondeur — est plus proche que vous ne le pensez.',
+      ],
+      N: [
+        'Mercure vous offre, {prenom}, la clarté de l\'analyse dans un monde de confusion. Votre discernement exceptionnel sera votre boussole ce cycle. Faites confiance à ce regard affûté que vous portez sur vous-même et sur les autres.',
+      ],
+    },
+  },
+  {
+    nom:      'Balance',
+    emoji:    '♎',
+    dates:    '23 septembre — 22 octobre',
+    element:  'Air 💨',
+    planete:  'Vénus — planète de la beauté, de l\'harmonie et des relations.',
+    perso:    'Diplomate né et esthète raffiné, la Balance aspire à l\'harmonie en toutes choses. Son sens de la justice, son charme naturel et sa capacité à voir tous les angles d\'une situation en font un médiateur exceptionnel.',
+    compat:   'Gémeaux, Verseau (signes d\'Air) — et Lion, Sagittaire pour un équilibre dynamique.',
+    traits:   ['Équitable', 'Charmant', 'Diplomatique', 'Raffiné', 'Indécis', 'Sociable'],
+    predictions: {
+      M: [
+        'Vénus vous sourit, {prenom}, et l\'univers conspire à placer la beauté sur votre chemin. Une décision longtemps différée ne peut plus l\'être — et la Balance que vous êtes le sait. Choisissez avec votre cœur, pas seulement votre raison, et l\'harmonie que vous cherchez se manifestera.',
+        'L\'Oracle voit, {prenom}, un partenariat — professionnel ou amoureux — qui pourrait transformer votre existence. La clé est votre courage à ouvrir la conversation que vous repoussez depuis trop longtemps.',
+      ],
+      F: [
+        'Vénus orchestre pour vous, {prenom}, une symphonie d\'opportunités relationnelles et esthétiques. Votre sens du beau vous guidera vers les choix les plus justes — faites confiance à votre goût exquis. Une collaboration créative pourrait naître d\'une rencontre inattendue.',
+        'L\'Oracle distingue en vous, {prenom}, une force d\'équilibre que votre entourage recherche sans le savoir. Vous avez le don de réconcilier ce qui semble irréconciliable — c\'est une aptitude rare qui vous ouvre des portes inestimables.',
+      ],
+      N: [
+        'Vénus tisse pour vous, {prenom}, un réseau de connexions significatives. Ce cycle met l\'accent sur l\'équilibre — entre donner et recevoir, entre solitude et présence. L\'harmonie que vous cherchez commence par l\'accord que vous faites avec vous-même.',
+      ],
+    },
+  },
+  {
+    nom:      'Scorpion',
+    emoji:    '♏',
+    dates:    '23 octobre — 21 novembre',
+    element:  'Eau 🌊',
+    planete:  'Pluton et Mars — planètes de la transformation, du mystère et de la puissance.',
+    perso:    'Magnétique et profond, le Scorpion plonge là où les autres n\'osent pas regarder. Doté d\'une intuition redoutable et d\'une intensité émotionnelle exceptionnelle, il incarne le mystère et la renaissance perpétuelle.',
+    compat:   'Cancer, Poissons (signes d\'Eau) — et Capricorne, Vierge pour une complémentarité solide.',
+    traits:   ['Intense', 'Perspicace', 'Magnétique', 'Déterminé', 'Mystérieux', 'Transformateur'],
+    predictions: {
+      M: [
+        'Pluton, {prenom}, vous convoque à une transformation qui changera tout. Ce qui meurt en vous actuellement prépare une renaissance d\'une puissance rare. Vos ennemis et obstacles ne sont que des catalyseurs de votre prochaine incarnation. En amour, une connexion d\'âme s\'annonce — rare, intense, inoubliable.',
+        'L\'Oracle perçoit en vous, {prenom}, un phœnix à la veille de son envol. La période d\'obscurité que vous traversez n\'est pas une fin — c\'est une matrice. Ce qui émergera de vous dans les prochaines lunes étonnera jusqu\'à ceux qui vous croient connaître.',
+      ],
+      F: [
+        'Les forces de Pluton révèlent, {prenom}, une puissance intérieure que vous-même sous-estimez. Ce cycle vous demande d\'aller au fond de vos désirs les plus profonds et de leur accorder le droit d\'exister. Une vérité longtemps refoulée cherche à faire surface — accueillez-la, elle est libératrice.',
+        'L\'Oracle vous voit, {prenom}, exercer un magnétisme dévastateur et irrésistible. Utilisez ce pouvoir avec sagesse — les êtres attirés vers vous en ce moment méritent votre authenticité totale.',
+      ],
+      N: [
+        'Pluton vous transforme, {prenom}, comme il transforme tout ce qu\'il touche. Ce cycle n\'est pas pour les âmes timorées — mais vous n\'en êtes pas une. Plongez dans les profondeurs de vous-même avec confiance : ce que vous trouverez là changera votre vie.',
+      ],
+    },
+  },
+  {
+    nom:      'Sagittaire',
+    emoji:    '♐',
+    dates:    '22 novembre — 21 décembre',
+    element:  'Feu 🔥',
+    planete:  'Jupiter — planète de l\'expansion, de la chance et de la philosophie.',
+    perso:    'Aventurier de l\'esprit et de l\'espace, le Sagittaire vit pour l\'exploration et la quête de sens. Optimiste irrépressible et philosophe né, il incarne la liberté et l\'enthousiasme à l\'état pur.',
+    compat:   'Bélier, Lion (signes de Feu) — et Balance, Verseau pour une communion intellectuelle.',
+    traits:   ['Aventurier', 'Optimiste', 'Philosophe', 'Libre', 'Direct', 'Généreux'],
+    predictions: {
+      M: [
+        'Jupiter ouvre devant vous, {prenom}, une autoroute vers l\'horizon. Un voyage — physique ou intellectuel — est sur le point de remodeler votre vision du monde. Une opportunité d\'expansion professionnelle pointera son nez là où vous l\'attendiez le moins. Votre optimisme, souvent mis à l\'épreuve, sera votre meilleur investissement.',
+        'L\'Oracle voit en vous, {prenom}, un archer dont la flèche trouvera sa cible après plusieurs essais. Ne changez pas votre viser — c\'est votre portée que vous sous-estimez. Un mentor ou maître inattendu apparaît dans votre chemin pour vous révéler votre potentiel réel.',
+      ],
+      F: [
+        'Jupiter vous bénit, {prenom}, de sa chance expansive et généreuse. Ce cycle vous invite à dire oui là où vous avez l\'habitude de vous restreindre. Un apprentissage, un voyage ou une rencontre internationale pourrait changer le cap de votre destinée.',
+        'L\'Oracle distingue en vous, {prenom}, une exploratrice à la veille de sa plus grande découverte — celle de son propre territoire intérieur. L\'aventure extérieure n\'est que le reflet de ce voyage plus intime.',
+      ],
+      N: [
+        'Jupiter vous offre, {prenom}, ses dons les plus précieux : chance, expansion et sens. Ce cycle est une invitation à penser plus grand, à rêver plus loin, à oser l\'improbable. L\'univers conspire en votre faveur quand vous lui faites confiance.',
+      ],
+    },
+  },
+  {
+    nom:      'Capricorne',
+    emoji:    '♑',
+    dates:    '22 décembre — 19 janvier',
+    element:  'Terre 🌍',
+    planete:  'Saturne — planète de la discipline, de la persévérance et du temps.',
+    perso:    'Architecte de sa propre destinée, le Capricorne gravit les montagnes de la vie avec une détermination sans pareille. Ambitieux et discipliné, il possède une maturité innée et une vision à long terme qui impressionne.',
+    compat:   'Taureau, Vierge (signes de Terre) — et Scorpion, Poissons pour une profondeur complice.',
+    traits:   ['Ambitieux', 'Discipliné', 'Patient', 'Responsable', 'Stratège', 'Réaliste'],
+    predictions: {
+      M: [
+        'Saturne, votre gardien, {prenom}, valide chaque effort fourni avec une précision divine. Ce cycle marque l\'aboutissement d\'un travail long et patient — une promotion, une reconnaissance ou un succès tangible est imminent. Méfiez-vous de la tentation de tout contrôler en amour — lâcher prise est aussi une force.',
+        'L\'Oracle perçoit en vous, {prenom}, un bâtisseur à l\'apogée de son œuvre. Chaque pierre que vous avez posée avec soin construit aujourd\'hui une cathédrale. Une personne de confiance entrera dans votre vie pour l\'enrichir sans menacer votre indépendance.',
+      ],
+      F: [
+        'Saturne vous couronne, {prenom}, de l\'autorité de ceux qui ont vraiment mérité leur place. Ce cycle vous offre la reconnaissance longtemps différée. Permettez-vous de célébrer — votre succès n\'est pas un accident, c\'est le résultat de votre incroyable rigueur.',
+        'L\'Oracle vous voit, {prenom}, à l\'orée d\'un chapitre où votre force silencieuse sera enfin visible. Un partenaire qui apprécie votre ambition autant que votre cœur se profilera à l\'horizon.',
+      ],
+      N: [
+        'Saturne, {prenom}, honore votre persévérance de la seule façon qui compte : les résultats. Ce cycle marque la récolte d\'efforts investis dans la durée. Votre patience, si souvent incomprise, est votre arme secrète la plus puissante.',
+      ],
+    },
+  },
+  {
+    nom:      'Verseau',
+    emoji:    '♒',
+    dates:    '20 janvier — 18 février',
+    element:  'Air 💨',
+    planete:  'Uranus et Saturne — planètes de l\'innovation, de la rébellion et de la vision.',
+    perso:    'Visionnaire en avance sur son temps, le Verseau pense et agit hors des sentiers battus. Humaniste dans l\'âme, il porte en lui la promesse d\'un monde meilleur et n\'hésite pas à briser les conventions pour y parvenir.',
+    compat:   'Gémeaux, Balance (signes d\'Air) — et Bélier, Sagittaire pour une énergie progressiste.',
+    traits:   ['Visionnaire', 'Original', 'Humaniste', 'Indépendant', 'Innovant', 'Rebelle'],
+    predictions: {
+      M: [
+        'Uranus vous propulse, {prenom}, vers un avenir que vous seul pouvez imaginer. Une idée révolutionnaire que vous couvez depuis longtemps est prête à changer la donne — pour vous et pour votre communauté. Les structures qui vous étouffaient vont se fissurer pour laisser entrer la lumière de votre génie.',
+        'L\'Oracle voit en vous, {prenom}, l\'éclaireur d\'un groupe qui a besoin de votre vision pour avancer. Un rôle de leadership atypique s\'offre à vous — pas celui de chef traditionnel, mais de celui qui montre le chemin vers ce que personne d\'autre ne voit encore.',
+      ],
+      F: [
+        'Les étoiles d\'Uranus vous révèlent, {prenom}, comme une pionnière à l\'orée d\'un territoire inexploré. Ce cycle vous invite à faire confiance à votre excentricité — ce qui vous différencie est précisément ce dont le monde a besoin. Une collaboration avec des esprits aussi libres que le vôtre s\'annonce fructueuse.',
+        'L\'Oracle distingue en vous, {prenom}, une flamme d\'avant-garde qui illumine ceux qui ont la chance de croiser votre chemin. Ne compromettez pas votre authenticité pour être acceptée — les bonnes personnes vous trouveront.',
+      ],
+      N: [
+        'Uranus vous galvanise, {prenom}, de son énergie de rupture et de renaissance. Ce cycle vous demande de rompre avec ce qui ne vous ressemble plus pour embrasser une version de vous-même plus libre et plus vraie. Votre originalité est votre boussole — suivez-la.',
+      ],
+    },
+  },
+  {
+    nom:      'Poissons',
+    emoji:    '♓',
+    dates:    '19 février — 20 mars',
+    element:  'Eau 🌊',
+    planete:  'Neptune et Jupiter — planètes du rêve, de la spiritualité et de la compassion.',
+    perso:    'Mystique et empathique, le Poissons nage entre le visible et l\'invisible avec une grâce naturelle. Doté d\'une imagination débordante et d\'une sensibilité artistique profonde, il perçoit ce que les autres ne ressentent même pas.',
+    compat:   'Cancer, Scorpion (signes d\'Eau) — et Taureau, Capricorne pour un ancrage bienveillant.',
+    traits:   ['Empathique', 'Intuitif', 'Créatif', 'Rêveur', 'Compassionnel', 'Mystique'],
+    predictions: {
+      M: [
+        'Neptune, {prenom}, vous offre le don des songes lucides. Un rêve récurrent ou une intuition persistante porte un message important — prenez le temps de l\'écouter dans le silence. Votre créativité est à son apogée : ce que vous créez en ce moment vient d\'une source plus profonde que votre seul talent.',
+        'L\'Oracle perçoit en vous, {prenom}, une âme de guérisseur dont le monde a besoin. Un acte de compassion que vous poserez naturellement transformera une vie — peut-être la vôtre. L\'amour qui vous attend est celui d\'une âme sœur qui comprend votre profondeur sans chercher à l\'expliquer.',
+      ],
+      F: [
+        'Neptune tisse pour vous, {prenom}, un voile de possibilités enchanteresses. Votre intuition est votre gift le plus précieux ce cycle — écoutez-la avant votre intellect. Une inspiration artistique ou spirituelle pourrait vous emmener vers une expression de vous-même que vous n\'avez jamais osée.',
+        'L\'Oracle vous voit, {prenom}, à la croisée des mondes — celui du rêve et du réel. Votre capacité à naviguer entre les deux est un talent rare. Permettez-vous de manifester vos visions les plus douces en actions concrètes.',
+      ],
+      N: [
+        'Neptune vous berce, {prenom}, de ses vagues les plus profondes. Ce cycle vous invite à plonger dans votre monde intérieur pour en ramener des trésors que vous partagerez avec ceux que vous aimez. Votre sensibilité est votre force, jamais votre faiblesse.',
+      ],
+    },
+  },
+];
+
+/* ════════════════════════════════════════
+   LOGIQUE PRINCIPALE
+════════════════════════════════════════ */
+
+// Initialiser la date max (pas de futur)
+document.getElementById('dob').max = new Date().toISOString().split('T')[0];
+
+function getSign(day, month) {
+  const dates = [
+    [3, 21], [4, 20], // Bélier
+    [4, 20], [5, 21], // Taureau
+    [5, 21], [6, 21], // Gémeaux
+    [6, 21], [7, 23], // Cancer
+    [7, 23], [8, 23], // Lion
+    [8, 23], [9, 23], // Vierge
+    [9, 23],[10, 23], // Balance
+    [10,23],[11, 22], // Scorpion
+    [11,22],[12, 22], // Sagittaire
+    [12,22], [1, 20], // Capricorne
+    [1, 20], [2, 19], // Verseau
+    [2, 19], [3, 21], // Poissons
+  ];
+
+  const checks = [
+    (m,d) => m===3  && d>=21 || m===4  && d<20,  // Bélier
+    (m,d) => m===4  && d>=20 || m===5  && d<21,  // Taureau
+    (m,d) => m===5  && d>=21 || m===6  && d<21,  // Gémeaux
+    (m,d) => m===6  && d>=21 || m===7  && d<23,  // Cancer
+    (m,d) => m===7  && d>=23 || m===8  && d<23,  // Lion
+    (m,d) => m===8  && d>=23 || m===9  && d<23,  // Vierge
+    (m,d) => m===9  && d>=23 || m===10 && d<23,  // Balance
+    (m,d) => m===10 && d>=23 || m===11 && d<22,  // Scorpion
+    (m,d) => m===11 && d>=22 || m===12 && d<22,  // Sagittaire
+    (m,d) => m===12 && d>=22 || m===1  && d<20,  // Capricorne
+    (m,d) => m===1  && d>=20 || m===2  && d<19,  // Verseau
+    (m,d) => m===2  && d>=19 || m===3  && d<21,  // Poissons
+  ];
+
+  const idx = checks.findIndex(fn => fn(month, day));
+  return SIGNES[idx >= 0 ? idx : 11];
+}
+
+function getPrediction(signe, genre, prenom) {
+  const pool = signe.predictions[genre] || signe.predictions['N'];
+  const raw  = pool[Math.floor(Math.random() * pool.length)];
+  return raw.replace(/\{prenom\}/g, prenom);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+  // Reset animation
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = '';
+}
+
+function hideError() {
+  document.getElementById('errorMsg').style.display = 'none';
+}
+
+function consulterOracle() {
+  const prenom = document.getElementById('prenom').value.trim();
+  const genre  = document.getElementById('genre').value;
+  const dob    = document.getElementById('dob').value;
+
+  hideError();
+
+  // Validation
+  if (!prenom) { showError('Veuillez entrer votre prénom.'); return; }
+  if (!genre)  { showError('Veuillez sélectionner votre genre.'); return; }
+  if (!dob)    { showError('Veuillez entrer votre date de naissance.'); return; }
+
+  const date  = new Date(dob);
+  const day   = date.getDate();
+  const month = date.getMonth() + 1;
+
+  const signe = getSign(day, month);
+
+  // ── Remplir le DOM ──
+  const civilite = genre === 'F' ? 'Chère' : genre === 'M' ? 'Cher' : 'Cher·ère';
+
+  // Via manipulation DOM directe
+  document.getElementById('signEmoji').textContent    = signe.emoji;
+  document.getElementById('greetingName').textContent = `${civilite} ${prenom}`;
+  document.getElementById('signName').textContent     = signe.nom;
+  document.getElementById('signDates').textContent    = signe.dates;
+  document.getElementById('signElement').textContent  = `Élément : ${signe.element}`;
+  document.getElementById('signPerso').textContent    = signe.perso;
+  document.getElementById('signPlanete').textContent  = signe.planete;
+  document.getElementById('signCompat').textContent   = signe.compat;
+  document.getElementById('predictionText').textContent = getPrediction(signe, genre, prenom);
+
+  // Traits — créés dynamiquement
+  const grid = document.getElementById('traitsGrid');
+  grid.innerHTML = ''; // vide le grid
+  signe.traits.forEach(trait => {
+    const item = document.createElement('div');
+    item.className = 'trait-item';
+    item.textContent = trait;
+    grid.appendChild(item); // DOM manipulation
+  });
+
+  // Afficher le résultat, masquer formulaire
+  const formCard = document.getElementById('formCard');
+  const result   = document.getElementById('result');
+
+  formCard.style.transition = 'opacity 0.4s, transform 0.4s';
+  formCard.style.opacity    = '0';
+  formCard.style.transform  = 'scale(0.95)';
+
+  setTimeout(() => {
+    formCard.style.display = 'none';
+    result.style.display   = 'block';
+    result.style.animation = 'none';
+    result.offsetHeight;
+    result.style.animation = 'revealResult 0.8s ease both';
+
+    // Scroll doux vers le résultat
+    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 400);
+
+  // Effet de particules dorées au clic
+  spawnGoldParticles();
+}
+
+function recommencer() {
+  const formCard = document.getElementById('formCard');
+  const result   = document.getElementById('result');
+
+  result.style.display = 'none';
+
+  formCard.style.display  = 'block';
+  formCard.style.opacity  = '0';
+  formCard.style.transform = 'scale(0.95)';
+
+  setTimeout(() => {
+    formCard.style.transition = 'opacity 0.5s, transform 0.5s';
+    formCard.style.opacity    = '1';
+    formCard.style.transform  = 'scale(1)';
+  }, 50);
+
+  // Reset champs
+  document.getElementById('prenom').value = '';
+  document.getElementById('genre').value  = '';
+  document.getElementById('dob').value    = '';
+  hideError();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Effet particules au moment de la révélation */
+function spawnGoldParticles() {
+  const symbols = ['✦', '✧', '⋆', '★', '✺'];
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('span');
+    p.style.cssText = `
+      position:fixed;
+      left:${Math.random()*100}vw;
+      top:${Math.random()*100}vh;
+      color:var(--gold);
+      font-size:${0.6+Math.random()*0.8}rem;
+      pointer-events:none;
+      z-index:999;
+      animation: burstParticle 1.2s ${Math.random()*0.3}s ease-out forwards;
+    `;
+    p.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1600);
+  }
+}
+
+// CSS pour burst particles
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes burstParticle {
+    0%   { opacity:1; transform:scale(0) rotate(0deg); }
+    50%  { opacity:0.8; transform:scale(1.5) rotate(180deg); }
+    100% { opacity:0; transform:scale(0.5) rotate(360deg) translateY(-30px); }
+  }
+`;
+document.head.appendChild(style);
+
+/* Touche Entrée sur le formulaire */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') consulterOracle();
+});
+</script>
+</body>
+</html>
